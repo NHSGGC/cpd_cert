@@ -4,11 +4,11 @@ from datetime import datetime
 import time
 
 from auth import authenticate_google_credentials
-from extraction import extract_from_google_sheets
+from extraction import extract_from_google_sheets, sheets_column_index
 from transformation import modify_pdf
 from distribution import send_email_pdf
 
-from settings import OUTPUT_PDF_PATH
+from settings import OUTPUT_PDF_PATH, NAME_COL, GDC_NUM_COL, EMAIL_COL
 
 if __name__ == "__main__":
     while True:
@@ -23,9 +23,9 @@ if __name__ == "__main__":
 
             print(datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"))
             for row in rows[1:]:
-                name = row[1]
-                gdc_num = str(row[2])
-                email = row[11]
+                name = row[sheets_column_index(NAME_COL)]
+                gdc_num = str(row[sheets_column_index(GDC_NUM_COL)])
+                email = row[sheets_column_index(EMAIL_COL)]
 
                 if email not in cache['emails']:
                     print('Creating PDF for {} ({} - {})'.format(email, name, gdc_num))

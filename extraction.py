@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import string
+
 from googleapiclient.discovery import build
 
 from settings import SPREADSHEET_ID, RANGE_NAME
@@ -18,3 +20,7 @@ def extract_from_google_sheets(creds):
         print('No data found.')
     else:
         return values
+
+
+def sheets_column_index(column: str):
+    return string.ascii_uppercase.index(column)

@@ -1,4 +1,4 @@
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfWriter, PdfReader
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -24,14 +24,14 @@ def modify_pdf(name, gdc_number, input_path=INPUT_PDF_PATH, output_path=OUTPUT_P
 
     # move to the beginning of the StringIO buffer
     packet.seek(0)
-    new_pdf = PdfFileReader(packet)
+    new_pdf = PdfReader(packet)
     # read your existing PDF
-    existing_pdf = PdfFileReader(open(input_path, "rb"))
-    output = PdfFileWriter()
+    existing_pdf = PdfReader(open(input_path, "rb"))
+    output = PdfWriter()
     # add the "watermark" (which is the new pdf) on the existing page
-    page = existing_pdf.getPage(0)
-    page.mergePage(new_pdf.getPage(0))
-    output.addPage(page)
+    page = existing_pdf.pages[0]
+    page.merge_page(new_pdf.pages[0])
+    output.add_page(page)
     # finally, write "output" to a real file
     output_stream = open(output_path, "wb")
     output.write(output_stream)
@@ -39,4 +39,4 @@ def modify_pdf(name, gdc_number, input_path=INPUT_PDF_PATH, output_path=OUTPUT_P
 
 
 if __name__ == "__main__":
-    modify_pdf("Joe Bloggs", 12345678)
+    modify_pdf("Joe Bloggs", "12345678")

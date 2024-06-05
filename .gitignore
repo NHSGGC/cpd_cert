@@ -1,0 +1,5 @@
+__pycache__
+settings.py
+credentials.json
+*.pickle
+*.pdf

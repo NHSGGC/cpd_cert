@@ -32,6 +32,15 @@ def modify_pdf(name, gdc_number, input_path=INPUT_PDF_PATH, output_path=OUTPUT_P
     page = existing_pdf.pages[0]
     page.merge_page(new_pdf.pages[0])
     output.add_page(page)
+    # add any additional pages from existing pdf
+    additional_page_idx = 1
+    while True:
+        try:
+            page = existing_pdf.pages[additional_page_idx]
+        except IndexError:
+            break
+        output.add_page(page)
+        additional_page_idx += 1
     # finally, write "output" to a real file
     output_stream = open(output_path, "wb")
     output.write(output_stream)

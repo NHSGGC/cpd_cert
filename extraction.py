@@ -23,4 +23,4 @@ def extract_from_google_sheets(creds):
 
 
 def sheets_column_index(column: str):
-    return string.ascii_uppercase.index(column)
+    return sum(string.ascii_uppercase.index(c) + (idx * 26) for idx, c in enumerate(column))

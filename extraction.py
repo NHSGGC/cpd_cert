@@ -7,13 +7,14 @@ from googleapiclient.discovery import build
 from settings import SPREADSHEET_ID, RANGE_NAME
 
 
-def extract_from_google_sheets(creds):
+def extract_from_google_sheets(creds, spreadsheet_id=SPREADSHEET_ID,
+                               range_name=RANGE_NAME):
     service = build('sheets', 'v4', credentials=creds)
 
     # Call the Sheets API
     sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
-                                range=RANGE_NAME).execute()
+    result = sheet.values().get(spreadsheetId=spreadsheet_id,
+                                range=range_name).execute()
     values = result.get('values', [])
 
     if not values:

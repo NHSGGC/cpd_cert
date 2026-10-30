@@ -3,3 +3,4 @@ settings.py
 credentials.json
 *.pickle
 *.pdf
+jobs/

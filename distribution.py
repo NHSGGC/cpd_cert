@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import base64
+import os
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -23,8 +24,9 @@ def send_email_pdf(creds, destination, path_to_pdf=OUTPUT_PDF_PATH, body=EMAIL_B
         with open(path_to_pdf, "rb") as f:
             attach = MIMEApplication(f.read(), _subtype="pdf")
 
-        attach.add_header('Content-Disposition', 'attachment', filename=path_to_pdf)
-        attach.add_header('Content-Type', "application", name=path_to_pdf)
+        attachment_filename = os.path.basename(path_to_pdf)
+        attach.add_header('Content-Disposition', 'attachment', filename=attachment_filename)
+        attach.add_header('Content-Type', "application", name=attachment_filename)
 
         # Encode file in ASCII characters to send by email
         encoders.encode_base64(attach)

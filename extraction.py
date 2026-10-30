@@ -24,4 +24,7 @@ def extract_from_google_sheets(creds, spreadsheet_id=SPREADSHEET_ID,
 
 
 def sheets_column_index(column: str):
-    return sum(string.ascii_uppercase.index(c) + (idx * 26) for idx, c in enumerate(column))
+    index = 0
+    for character in column.upper():
+        index = (index * 26) + string.ascii_uppercase.index(character) + 1
+    return index - 1

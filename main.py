@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import os
 import pickle
+import re
 from datetime import datetime
 import time
 
@@ -24,6 +25,19 @@ from settings import (
 )
 
 
+EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+
+def validate_email_address(value):
+    """Return a normalized address and an error message, if any."""
+    email = str(value).strip()
+    if not email:
+        return email, 'email address is empty'
+    if not EMAIL_PATTERN.fullmatch(email):
+        return email, 'email address has an invalid format'
+    return email, None
+
+
 def process_job(creds, job, dry_run=False, redirect_to=None, max_sends=None):
     """Process outstanding certificates for one explicitly configured job.
 
@@ -37,7 +51,8 @@ def process_job(creds, job, dry_run=False, redirect_to=None, max_sends=None):
         range_name=job['range_name'],
     )
     if not rows:
-        return {'sent': 0, 'already_sent': 0, 'would_send': 0, 'recipients': []}
+        return {'sent': 0, 'already_sent': 0, 'would_send': 0,
+                'recipients': [], 'warnings': []}
 
     cache_path = job['cache_path']
     if os.path.exists(cache_path):
@@ -48,10 +63,25 @@ def process_job(creds, job, dry_run=False, redirect_to=None, max_sends=None):
 
     sent = already_sent = 0
     recipients = []
-    for row in rows[1:]:
-        name = row[sheets_column_index(job['name_col'])]
-        gdc_num = str(row[sheets_column_index(job['gdc_num_col'])])
-        email = row[sheets_column_index(job['email_col'])]
+    warnings = []
+    name_index = sheets_column_index(job['name_col'])
+    gdc_index = sheets_column_index(job['gdc_num_col'])
+    email_index = sheets_column_index(job['email_col'])
+    for sheet_row, row in enumerate(rows[1:], start=2):
+        if email_index >= len(row):
+            warnings.append('Row {}: email column {} is empty or missing'.format(
+                sheet_row, job['email_col']))
+            continue
+        email, email_error = validate_email_address(row[email_index])
+        if email_error:
+            warnings.append('Row {}: {} ({})'.format(
+                sheet_row, email_error, email or 'blank'))
+            continue
+        if name_index >= len(row) or gdc_index >= len(row):
+            warnings.append('Row {}: name or GDC column is empty or missing'.format(sheet_row))
+            continue
+        name = row[name_index]
+        gdc_num = str(row[gdc_index])
         if email in cache['emails']:
             already_sent += 1
             print("Email already sent to {} ({} - {})".format(email, name, gdc_num))
@@ -99,6 +129,7 @@ def process_job(creds, job, dry_run=False, redirect_to=None, max_sends=None):
         'already_sent': already_sent,
         'would_send': len(recipients),
         'recipients': recipients,
+        'warnings': warnings,
     }
 
 

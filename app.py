@@ -31,8 +31,8 @@ DEFAULTS = {
 }
 
 PAGE = """<!doctype html><html><head><meta charset=utf-8><title>CPD Certificate Sender</title>
-<style>body{{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}}label{{display:block;margin:.6rem 0;font-weight:600}}input,textarea{{display:block;box-sizing:border-box;width:100%;padding:.5rem}}textarea{{height:8rem}}button,.button{{display:inline-block;background:#175c9c;color:white;border:0;border-radius:4px;padding:.65rem 1rem;text-decoration:none;font-weight:600;cursor:pointer}}button.danger{{background:#a72b2b}}.connect{{padding:1rem;border:2px solid #175c9c;border-radius:6px;background:#f3f8fc;margin:1rem 0 1.5rem}}.connect h2{{margin-top:0}}.editing{{padding:1rem;border:2px solid #9a6410;border-radius:6px;background:#fff8e8;margin:1rem 0}}.editing strong{{font-size:1.1rem}}.jobs{{padding:.8rem;background:#f2f5f7;margin:.5rem 0}}.message{{padding:.8rem;background:#eaf4ff}}.error{{background:#ffecec}}.row{{display:grid;grid-template-columns:1fr 1fr;gap:1rem}}form.inline{{display:inline}}@media(max-width:650px){{.row{{grid-template-columns:1fr}}}}</style></head>
-<body><h1>CPD Certificate Sender</h1>{message}
+<style>body{{font:16px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}}label{{display:block;margin:.6rem 0;font-weight:600}}input,textarea{{display:block;box-sizing:border-box;width:100%;padding:.5rem}}textarea{{height:8rem}}button,.button{{display:inline-block;background:#175c9c;color:white;border:0;border-radius:4px;padding:.65rem 1rem;text-decoration:none;font-weight:600;cursor:pointer}}button.danger{{background:#a72b2b}}.connect{{padding:1rem;border:2px solid #175c9c;border-radius:6px;background:#f3f8fc;margin:1rem 0 1.5rem}}.connect h2{{margin-top:0}}.editing{{padding:1rem;border:2px solid #9a6410;border-radius:6px;background:#fff8e8;margin:1rem 0}}.editing strong{{font-size:1.1rem}}.jobs{{padding:.8rem;background:#f2f5f7;margin:.5rem 0}}.message{{padding:.8rem;background:#eaf4ff}}.warning{{padding:.8rem;background:#ffe3e3;border:1px solid #d88;margin:.7rem 0;white-space:pre-line}}.error{{background:#ffecec}}.row{{display:grid;grid-template-columns:1fr 1fr;gap:1rem}}form.inline{{display:inline}}@media(max-width:650px){{.row{{grid-template-columns:1fr}}}}</style></head>
+<body><h1>CPD Certificate Sender</h1>{message}{warning_message}
 <section class=connect><h2>1. Connect Google account</h2><p>Authorize the Google account that reads form responses and sends certificates.</p><form method=post action=/authorize><button>Connect / refresh Google account</button></form></section>
 <h2>2. Choose a saved job</h2>{jobs}<h2>3. {heading}</h2>{edit_notice}
 <form method=post action=/save enctype=multipart/form-data><input type=hidden name=job_id value='{job_id}'>
@@ -112,7 +112,7 @@ def form_values(job=None):
     }
 
 
-def render(selected=None, message='', error=False):
+def render(selected=None, message='', error=False, warning=''):
     blocks = []
     for job in list_jobs():
         identifier = html.escape(job['job_id'], quote=True)
@@ -138,6 +138,8 @@ def render(selected=None, message='', error=False):
                         "<a class=button href='/'>Cancel editing / create a new job</a></div>".format(
                             html.escape(selected['job_name']))) if selected else '',
         'message': ("<p class='message{}'>{}</p>".format(' error' if error else '', html.escape(message))) if message else '',
+        'warning_message': ("<div class=warning><strong>Warning</strong>\n{}</div>".format(
+            html.escape(warning))) if warning else '',
     })
     return PAGE.format(**values).encode()
 
@@ -154,8 +156,9 @@ class Handler(BaseHTTPRequestHandler):
     def send_page(self, body, status=200, content_type='text/html; charset=utf-8'):
         self.send_response(status); self.send_header('Content-Type', content_type); self.end_headers(); self.wfile.write(body)
 
-    def redirect(self, message):
-        self.send_response(303); self.send_header('Location', '/?message=' + urllib.parse.quote(message)); self.end_headers()
+    def redirect(self, message, warning=''):
+        query = urllib.parse.urlencode({'message': message, 'warning': warning})
+        self.send_response(303); self.send_header('Location', '/?' + query); self.end_headers()
 
     def fields(self):
         return FieldStorage(fp=self.rfile, headers=self.headers,
@@ -164,7 +167,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         selected = load_job(query['edit'][0]) if query.get('edit') else None
-        self.send_page(render(selected, query.get('message', [''])[0]))
+        self.send_page(render(selected, query.get('message', [''])[0],
+                              warning=query.get('warning', [''])[0]))
 
     def do_POST(self):
         try:
@@ -190,7 +194,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == '/dry-run':
                 creds, _ = credentials_for(job); result = process_job(creds, job, dry_run=True)
                 recipients = ', '.join(result['recipients']) or 'none'
-                self.redirect('Dry run: {} certificate(s) generated; no emails sent and cache unchanged. Recipients: {}'.format(result['would_send'], recipients)); return
+                warning = '\n'.join(result['warnings'])
+                self.redirect('Dry run: {} certificate(s) generated; {} invalid row(s); no emails sent and cache unchanged. Recipients: {}'.format(result['would_send'], len(result['warnings']), recipients), warning); return
             if self.path == '/send-test':
                 creds, account = credentials_for(job)
                 result = process_job(creds, job, redirect_to=account, max_sends=1)

@@ -1,6 +1,8 @@
 # cpd_cert
 To install, activate virtualenv and `pip install -r requirements.txt`. Create a new `settings.py` from the template `settings_sample.py`, then run `./main.py`.
 
+Alternatively, run `./app.py` for the local browser interface. Each job created there keeps its settings, template and sent cache together under `jobs/`. Use the Joe Bloggs test button to check the PDF before sending.
+
 1. Extracts data from Google Sheets linked to a Google Form,
 1. inputs the data into a PDF certificate,
 1. sends PDF as attachment to email address of form submitter.
@@ -19,4 +21,3 @@ Authentication seems to fail in Microsoft Edge browser, so try Firefox or Google
 
 Note that if it has been a long time since last run, you might need to delete `token.pickle` to allow Google to
 reauthenticate (should pop open in browser). Remember to authenticate using account **secretary.wosbspd@gmail.com**.
-
